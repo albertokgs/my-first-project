@@ -21,3 +21,5 @@ print("Verbs:", [token.lemma_ for token in doc if token.pos_ == "VERB"])
 # Find named entities, phrases and concepts
 for entity in doc.ents:
     print(entity.text, entity.label_)
+
+print('ok')
