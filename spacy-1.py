@@ -9,7 +9,10 @@ text = ("When Sebastian Thrun started working on self-driving cars at "
         "car companies would shake my hand and turn away because I wasn’t "
         "worth talking to,” said Thrun, in an interview with Recode earlier "
         "this week.")
-text = ('Apple is looking at buying U.K. startup for $1 billion.  Brazil is a large country in South America.')
+text = ('Apple is looking at buying U.K. startup for $1 billion.'
+         'Brazil is a large country in South America.'
+         'Brazil played Argentina last week')
+         
 doc = nlp(text)
 
 # Analyze syntax
