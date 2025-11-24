@@ -1,7 +1,4 @@
-# pip install -U spacy
-# python -m spacy download en_core_web_sm
 import spacy
-
 # Load English tokenizer, tagger, parser and NER
 nlp = spacy.load("en_core_web_sm")
 
@@ -12,6 +9,7 @@ text = ("When Sebastian Thrun started working on self-driving cars at "
         "car companies would shake my hand and turn away because I wasn’t "
         "worth talking to,” said Thrun, in an interview with Recode earlier "
         "this week.")
+text = ('Apple is looking at buying U.K. startup for $1 billion.  Brazil is a large country in South America.')
 doc = nlp(text)
 
 # Analyze syntax
@@ -22,4 +20,4 @@ print("Verbs:", [token.lemma_ for token in doc if token.pos_ == "VERB"])
 for entity in doc.ents:
     print(entity.text, entity.label_)
 
-print('ok')
+print("ok!")
