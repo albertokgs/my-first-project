@@ -1,0 +1,17 @@
+tabs
+- teach yourself computer science
+- the black hole short movie 2008 youtube
+- factorio
+- intuitive guide to maxwell's equations
+- control bootcamp, s. brunton
+- prof robbob
+- python clcoding
+- hitchhiker's guide to python
+- chris piech
+- hugging face - bert, prosus
+- cme295 - transformers & llms
+- beej python
+- jason mayes ai
+- karpathy zero to hero
+- fleuret deep learning
+- cs229 building llms
