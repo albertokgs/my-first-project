@@ -14,4 +14,16 @@ tabs
 - jason mayes ai
 - karpathy zero to hero
 - fleuret deep learning
-- cs229 building llms
+- cs229 building llms 
+- minute physics and 3b1b
+- sean carroll RI
+- davig tong, thomas wong
+- giuseppe cavalieri
+- 20y of eye on the market
+- andrew trask
+- chatgpt 2 run locally vs karpathy vs wolfram what is chatgpt doing
+- thinking machines lab
+- mathematical methods in data science
+- heisenberg's microscope
+- svm, panel regression
+- 

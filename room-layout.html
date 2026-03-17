@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Layout Visualizer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const C = {
+          bg: "#07070a",
+          panel: "#0d0d12",
+          border: "#1a1a24",
+          wall: "#1e1e2e",
+          walnut: "#3d2a14",
+          walnutLight: "#6b4a22",
+          walnutHi: "#c8a050",
+          dim: "#2a2a3a",
+          muted: "#3a3a4a",
+          text: "#7a7a8a",
+          textHi: "#c8c0b0",
+          window: "#1a2a3a",
+          floor: "#0e0e14",
+          tb4: "#34d399",
+          ethernet: "#a78bfa",
+          power: "#f59e0b",
+          nvlink: "#f87171",
+          usb: "#fb923c",
+          accent: "#d4a843",
+        };
+
+        const TABS = ["Room Plan", "Spark Detail", "Cable Routing", "Credenza Options"];
+
+        // ── ROOM PLAN ────────────────────────────────────────────────────────────────
+        function RoomPlan() {
+          const [hov, setHov] = useState(null);
+
+          // Scale: 1px = 0.5 inch roughly, room ~12×10ft = 288×240px
+          // SVG canvas 520×420
+          const S = 1.6; // scale factor: 1px = 0.625"
+
+          // Room: ~140"×110" interior
+          const RW = 224, RH = 176;
+          const OX = 40, OY = 40; // room origin
+
+          const items = {
+            desk:      { x: OX+20,       y: OY+12,       w: 115, h: 48,  label: "Parsons 72×30\"",  color: C.walnut, hi: C.walnutHi },
+            credenza:  { x: OX+135,      y: OY+12,       w: 52,  h: 30,  label: "Credenza ~32\"",   color: "#1a1a2e", hi: "#5555aa" },
+            aeron:     { x: OX+30,       y: OY+68,       w: 32,  h: 32,  label: "Aeron",            color: "#111118", hi: "#444" },
+            ups:       { x: OX+22,       y: OY+55,       w: 20,  h: 10,  label: "UPS",              color: "#1a0a00", hi: C.power },
+            sparkA:    { x: OX+88,       y: OY+55,       w: 20,  h: 10,  label: "Spark A",          color: "#001a1a", hi: C.tb4 },
+            sparkB:    { x: OX+110,      y: OY+55,       w: 20,  h: 10,  label: "Spark B",          color: "#001a1a", hi: C.tb4 },
+            switch_:   { x: OX+22,       y: OY+44,       w: 14,  h: 8,   label: "Switch",           color: "#0a0a1a", hi: C.ethernet },
+            printer:   { x: OX+4,        y: OY+110,      w: 28,  h: 30,  label: "Printer\ncart",    color: "#111", hi: "#555" },
+            bed:       { x: OX+60,       y: OY+106,      w: 80,  h: 64,  label: "Bed",              color: "#111118", hi: "#333" },
+          };
+
+          const tooltips = {
+            desk: "Parsons 72×30\" walnut — back against window",
+            credenza: "~32\" wide credenza — open right side of desk\nSparks live in under-desk bracket above this zone",
+            aeron: "Herman Miller Aeron — slides under desk",
+            ups: "APC BX1500M — left rear under desk against wall",
+            sparkA: "DGX Spark A — under-desk bracket, right zone",
+            sparkB: "DGX Spark B — under-desk bracket, right zone\nNVLink connects A↔B",
+            switch_: "2.5GbE switch — under desk left, near ethernet entry",
+            printer: "Canon printer on rolling IKEA cart",
+            bed: "Bed — far wall",
+          };
+
+          return (
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
+              <svg width={320} height={280} style={{ fontFamily: "Georgia, serif" }}>
+                {/* Room floor */}
+                <rect x={OX} y={OY} width={RW} height={RH} fill={C.floor} stroke={C.wall} strokeWidth={6}/>
+
+                {/* Window — top wall, center */}
+                <rect x={OX+40} y={OY-2} width={80} height={8} fill={C.window} rx={1}/>
+                <text x={OX+80} y={OY+8} textAnchor="middle" fill="#2a4a5a" fontSize={7} fontFamily="monospace">WINDOW (blackout)</text>
+
+                {/* Left wall indicator */}
+                <rect x={OX-4} y={OY+0} width={4} height={RH} fill={C.wall}/>
+                <text x={OX-12} y={OY+RH/2} textAnchor="middle" fill="#2a2a3a" fontSize={7}
+                  fontFamily="monospace" transform={`rotate(-90, ${OX-12}, ${OY+RH/2})`}>WALL</text>
+
+                {/* Door — bottom wall */}
+                <path d={`M ${OX+RW-32} ${OY+RH} L ${OX+RW-32} ${OY+RH+8} A 24 24 0 0 0 ${OX+RW-8} ${OY+RH}`}
+                  fill="none" stroke="#2a2a3a" strokeWidth={1} strokeDasharray="3 2"/>
+                <text x={OX+RW-20} y={OY+RH+18} fill="#2a2a3a" fontSize={7} fontFamily="monospace" textAnchor="middle">door</text>
+
+                {/* Hallway/nook indicator */}
+                <text x={OX+RW+8} y={OY+RH+10} fill="#2a2a4a" fontSize={7} fontFamily="monospace">→ hallway</text>
+                <text x={OX+RW+8} y={OY+RH+20} fill="#2a2a4a" fontSize={7} fontFamily="monospace">  ~25ft → nook</text>
+
+                {/* Ethernet cable path */}
+                <path d={`M ${OX+RW} ${OY+RH} L ${OX+RW+30} ${OY+RH} L ${OX+RW+30} ${OY+RH+40} L ${OX+30} ${OY+RH+40} L ${OX+4} ${OY+RH+40} L ${OX+4} ${OY+40} L ${OX+22} ${OY+48}`}
+                  fill="none" stroke={C.ethernet} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6}/>
+                <text x={OX+RW+36} y={OY+RH+30} fill={C.ethernet} fontSize={7} fontFamily="monospace" opacity={0.7}>Cat6A</text>
+                <text x={OX+RW+36} y={OY+RH+40} fill={C.ethernet} fontSize={7} fontFamily="monospace" opacity={0.7}>flat</text>
+
+                {/* Items */}
+                {Object.entries(items).map(([id, item]) => {
+                  const isH = hov === id;
+                  return (
+                    <g key={id}
+                      onMouseEnter={() => setHov(id)}
+                      onMouseLeave={() => setHov(null)}
+                      style={{ cursor: "default" }}>
+                      <rect x={item.x} y={item.y} width={item.w} height={item.h}
+                        fill={item.color}
+                        stroke={isH ? item.hi : "#1a1a2a"}
+                        strokeWidth={isH ? 1.5 : 0.5}
+                        rx={2}/>
+                      {item.label.split("\n").map((line, li) => (
+                        <text key={li}
+                          x={item.x + item.w/2}
+                          y={item.y + item.h/2 + (li - (item.label.split("\n").length-1)/2) * 9}
+                          textAnchor="middle" dominantBaseline="middle"
+                          fill={isH ? item.hi : C.muted}
+                          fontSize={6.5} fontFamily="Georgia">{line}</text>
+                      ))}
+                    </g>
+                  );
+                })}
+
+                {/* Under-desk bracket zone indicator */}
+                <rect x={OX+85} y={OY+42} width={50} height={22}
+                  fill="none" stroke={C.tb4} strokeWidth={0.8} strokeDasharray="3 2" opacity={0.5} rx={1}/>
+                <text x={OX+110} y={OY+39} textAnchor="middle" fill={C.tb4} fontSize={6} fontFamily="monospace" opacity={0.6}>under-desk bracket</text>
+
+                {/* NVLink */}
+                <line x1={OX+108} y1={OY+60} x2={OX+110} y2={OY+60}
+                  stroke={C.nvlink} strokeWidth={2} opacity={0.8}/>
+
+                {/* Compass */}
+                <text x={OX+RW-12} y={OY+20} fill="#1a1a2a" fontSize={8} fontFamily="Georgia">↑N</text>
+              </svg>
+
+              {/* Tooltip panel */}
+              <div style={{ width: 200, minHeight: 160 }}>
+                <div style={{ color: C.accent, fontSize: 9, fontFamily: "monospace", letterSpacing: 2, marginBottom: 12, textTransform: "uppercase" }}>
+                  {hov ? hov.replace("_","") : "hover items"}
+                </div>
+                {hov && (
+                  <div style={{ color: C.text, fontSize: 11, fontFamily: "Georgia", lineHeight: 1.8, whiteSpace: "pre-line" }}>
+                    {tooltips[hov] || ""}
+                  </div>
+                )}
+                {!hov && (
+                  <div style={{ color: C.dim, fontSize: 10, fontFamily: "Georgia", lineHeight: 1.9 }}>
+                    {["Desk — back to window, left to wall",
+                      "Credenza — right open side",
+                      "Sparks — under-desk bracket right",
+                      "UPS — under-desk left rear",
+                      "Switch — under-desk left",
+                      "Ethernet — follows left wall",
+                    ].map((s,i) => <div key={i}>· {s}</div>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // ── SPARK DETAIL ─────────────────────────────────────────────────────────────
+        function SparkDetail() {
+          return (
+            <div style={{ maxWidth: 620, margin: "0 auto" }}>
+              <svg width="100%" viewBox="0 0 580 280" style={{ fontFamily: "Georgia" }}>
+
+                {/* Desk side cross-section */}
+                {/* Desk top surface */}
+                <rect x={20} y={40} width={350} height={16} fill={C.walnut} rx={1}/>
+                <text x={195} y={52} textAnchor="middle" fill={C.walnutHi} fontSize={8} fontFamily="monospace">PARSONS TOP SURFACE</text>
+
+                {/* Steel apron */}
+                <rect x={20} y={56} width={350} height={12} fill="#2a2a2a" rx={1}/>
+                <text x={195} y={65} textAnchor="middle" fill="#666" fontSize={7} fontFamily="monospace">2″ STEEL APRON</text>
+
+                {/* Bracket bolts */}
+                <circle cx={80} cy={62} r={3} fill="#444" stroke="#666" strokeWidth={1}/>
+                <circle cx={300} cy={62} r={3} fill="#444" stroke="#666" strokeWidth={1}/>
+                <text x={80} y={80} textAnchor="middle" fill="#444" fontSize={7} fontFamily="monospace">M6 bolt</text>
+
+                {/* Bracket L-arms */}
+                <rect x={70} y={68} width={8} height={30} fill="#333" rx={1}/>
+                <rect x={70} y={94} width={180} height={6} fill="#333" rx={1}/>
+                <rect x={290} y={68} width={8} height={30} fill="#333" rx={1}/>
+
+                {/* Shelf tray */}
+                <rect x={68} y={100} width={232} height={6} fill="#1a1a1a" stroke="#333" strokeWidth={0.5} rx={1}/>
+                <text x={184} y={97} textAnchor="middle" fill="#333" fontSize={7} fontFamily="monospace">open wire tray shelf</text>
+
+                {/* Spark A */}
+                <rect x={80} y={106} width={80} height={56} fill="#001820" stroke={C.tb4} strokeWidth={1} rx={3}/>
+                <text x={120} y={128} textAnchor="middle" fill={C.tb4} fontSize={8} fontFamily="Georgia">DGX Spark A</text>
+                <text x={120} y={140} textAnchor="middle" fill="#2a5a4a" fontSize={7} fontFamily="monospace">7.87″ × 7.87″ × 1.57″</text>
+                {/* Fan arrows */}
+                <text x={120} y={118} textAnchor="middle" fill={C.tb4} fontSize={11} opacity={0.6}>↑</text>
+                <text x={72} y={134} textAnchor="middle" fill={C.tb4} fontSize={11} opacity={0.5}>←</text>
+
+                {/* Spark B */}
+                <rect x={175} y={106} width={80} height={56} fill="#001820" stroke={C.tb4} strokeWidth={1} rx={3}/>
+                <text x={215} y={128} textAnchor="middle" fill={C.tb4} fontSize={8} fontFamily="Georgia">DGX Spark B</text>
+                <text x={215} y={140} textAnchor="middle" fill="#2a5a4a" fontSize={7} fontFamily="monospace">7.87″ × 7.87″ × 1.57″</text>
+                <text x={215} y={118} textAnchor="middle" fill={C.tb4} fontSize={11} opacity={0.6}>↑</text>
+
+                {/* NVLink arc */}
+                <path d="M 160 134 Q 168 120 175 134" fill="none" stroke={C.nvlink} strokeWidth={2.5}/>
+                <text x={168} y={117} textAnchor="middle" fill={C.nvlink} fontSize={7} fontFamily="monospace">NVLink</text>
+
+                {/* Floor */}
+                <line x1={20} y1={220} x2={380} y2={220} stroke="#1a1a1a" strokeWidth={2}/>
+                <text x={200} y={232} textAnchor="middle" fill="#222" fontSize={7} fontFamily="monospace">FLOOR</text>
+
+                {/* Dimension arrows */}
+                {/* Desk height */}
+                <line x1={10} y1={40} x2={10} y2={220} stroke="#222" strokeWidth={0.8}/>
+                <text x={6} y={130} textAnchor="middle" fill="#333" fontSize={7} fontFamily="monospace"
+                  transform="rotate(-90, 6, 130)">29″ desk height</text>
+
+                {/* Spark clearance */}
+                <line x1={275} y1={162} x2={275} y2={220} stroke="#333" strokeWidth={0.8} strokeDasharray="3 2"/>
+                <text x={310} y={195} fill="#444" fontSize={7} fontFamily="Georgia">~58″ from</text>
+                <text x={310} y={205} fill="#444" fontSize={7} fontFamily="Georgia">floor to shelf</text>
+                <text x={310} y={215} fill="#333" fontSize={7} fontFamily="Georgia">(floor clear ✓)</text>
+
+                {/* UPS on floor left */}
+                <rect x={22} y={185} width={44} height={28} fill="#1a0800" stroke={C.power} strokeWidth={0.8} rx={2}/>
+                <text x={44} y={198} textAnchor="middle" fill={C.power} fontSize={7} fontFamily="Georgia">APC BX1500M</text>
+                <text x={44} y={208} textAnchor="middle" fill="#5a3010" fontSize={7} fontFamily="monospace">left rear</text>
+
+                {/* Isobar under desk top */}
+                <rect x={22} y={170} width={44} height={9} fill="#1a0800" stroke={C.power} strokeWidth={0.5} rx={1}/>
+                <text x={44} y={177} textAnchor="middle" fill={C.power} fontSize={6.5} fontFamily="monospace">Isobar 8 (mounted)</text>
+
+                {/* Note: Grovemade shelf above */}
+                <rect x={20} y={22} width={350} height={10} fill="#2a1a08" stroke="#4a3010" strokeWidth={0.5} rx={1}/>
+                <text x={195} y={30} textAnchor="middle" fill="#6a4a18" fontSize={7} fontFamily="monospace">GROVEMADE SHELF 46×9″ (raises monitors ~4.5″)</text>
+
+                {/* Ethernet + power drops */}
+                <path d={`M 44 68 L 44 170`} fill="none" stroke={C.ethernet} strokeWidth={1} strokeDasharray="3 2" opacity={0.5}/>
+                <text x={50} y={125} fill={C.ethernet} fontSize={6.5} fontFamily="monospace" opacity={0.6}>Cat6A →\nswitch</text>
+
+              </svg>
+
+              {/* Specs table */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+                {[
+                  { label: "Spark dimensions", value: "7.87″ W × 7.87″ D × 1.57″ H each" },
+                  { label: "Two side-by-side", value: "~20″ total width — fits right zone under 72″ desk" },
+                  { label: "Bracket", value: "VIVO MSPA2 or custom L-bracket, M6 bolts to apron" },
+                  { label: "Tray shelf", value: "Open wire or laser-cut steel, ~22″ × 10″" },
+                  { label: "NVLink routing", value: "Side-by-side ~1.5″ gap, cable loops front-face gently" },
+                  { label: "Thermal", value: "Upright orientation — fans exhaust upward + side ✓" },
+                  { label: "Floor clearance", value: "Desk 29″H − apron 1.2″ − tray 0.6″ − Spark 1.57″ ≈ 25.6″ off floor" },
+                  { label: "Access", value: "Pull Aeron out → reach under right side of desk" },
+                ].map(row => (
+                  <div key={row.label} style={{ background: C.panel, border: `1px solid ${C.border}`, padding: "8px 12px", borderRadius: 3 }}>
+                    <div style={{ color: C.muted, fontSize: 8, fontFamily: "monospace", letterSpacing: 1, marginBottom: 3 }}>{row.label}</div>
+                    <div style={{ color: C.text, fontSize: 10, fontFamily: "Georgia", lineHeight: 1.6 }}>{row.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        // ── CABLE ROUTING ─────────────────────────────────────────────────────────────
+        function CableRouting() {
+          const [active, setActive] = useState("all");
+          const cables = [
+            {
+              id: "ethernet",
+              label: "Ethernet  Cat6A  ~30ft",
+              color: C.ethernet,
+              steps: [
+                { loc: "Nook", text: "Router LAN port → flat Cat6A cable into wall or along baseboard" },
+                { loc: "Hallway", text: "Flat cable under door threshold or through drilled grommet, adhesive clips every 12″ along baseboard skirting" },
+                { loc: "Bedroom door", text: "Under threshold — flat Cat6A (≤3.5mm) fits under most door gaps without lifting carpet" },
+                { loc: "Bedroom left wall", text: "Follow baseboard left wall from door to desk left leg — ~6–10ft along wall" },
+                { loc: "Under desk left", text: "Terminate at 2.5GbE switch, zip-tied to switch mount. Short 1ft patches out to TS4 dock + Spark A + Spark B" },
+              ]
+            },
+            {
+              id: "tb4",
+              label: "Thunderbolt 4  3× runs",
+              color: C.tb4,
+              steps: [
+                { loc: "MBP → TS4", text: "TB4 port 1: 1m cable, routed through Grovemade shelf rear channel or cable spine down left desk leg to dock below" },
+                { loc: "MBP → AW2725Q", text: "TB4 port 2 → DP1.4 adapter → 1.5m cable up monitor arm to OLED. Route cable through Ergotron LX arm channel." },
+                { loc: "MBP → Dell Right", text: "TB4 port 3 → 1.5m cable up right monitor arm. Route through Ergotron LX arm channel." },
+                { loc: "TS4 → Dell Left", text: "TB4 downstream port → 1m cable up left arm. Also provides 140W charging to Dell hub, which passes power to MBP." },
+                { loc: "Cable management", text: "All TB4 cables meet at rear of desk surface. Velcro bundle to Grovemade shelf rear rail. Drop to Isobar mount below." },
+              ]
+            },
+            {
+              id: "power",
+              label: "Power  AC",
+              color: C.power,
+              steps: [
+                { loc: "Wall outlet", text: "Single 15A wall outlet feeds APC BX1500M UPS — rear left under desk" },
+                { loc: "UPS → Isobar", text: "1.5ft heavy-duty cord UPS battery outlets → Tripp Lite Isobar 8, mounted under desk rear apron rail" },
+                { loc: "Isobar → Monitors", text: "3× monitor power bricks. Route brick cables up inside desk legs with velcro straps. Label each outlet." },
+                { loc: "Isobar → TS4 dock", text: "CalDigit TS4 power brick velcroed under desk surface. Short cord to Isobar." },
+                { loc: "Isobar → Sparks", text: "2× Spark power cables drop down from Isobar to under-desk bracket zone on right side." },
+                { loc: "Isobar → Switch", text: "Switch power adapter under desk left. Short cable to Isobar." },
+              ]
+            },
+            {
+              id: "nvlink",
+              label: "NVLink  Spark A ↔ B",
+              color: C.nvlink,
+              steps: [
+                { loc: "Cable", text: "NVIDIA official NVLink-C2C cable only. No third-party. Order with the Sparks." },
+                { loc: "Spacing", text: "Place Spark A and B side by side with ~1.5–2″ gap on tray. Connect NVLink before tightening any brackets." },
+                { loc: "Routing", text: "Cable loops gently on the front face of the units. Min bend radius ~4″ — do not force behind units." },
+                { loc: "Labeling", text: "Label both Sparks A/B with engraved or printed tag before mounting. Ports look identical." },
+              ]
+            },
+          ];
+
+          const shown = active === "all" ? cables : cables.filter(c => c.id === active);
+
+          return (
+            <div style={{ maxWidth: 640, margin: "0 auto" }}>
+              {/* Filter */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+                {[{id:"all",label:"All Cables",color:C.accent}, ...cables.map(c=>({id:c.id,label:c.label,color:c.color}))].map(btn => (
+                  <button key={btn.id} onClick={() => setActive(btn.id)} style={{
+                    background: active === btn.id ? `${btn.color}18` : "transparent",
+                    border: `1px solid ${active === btn.id ? btn.color : C.border}`,
+                    color: active === btn.id ? btn.color : C.muted,
+                    padding: "4px 10px", fontSize: 9, letterSpacing: 1,
+                    fontFamily: "monospace", cursor: "pointer", borderRadius: 2,
+                    textTransform: "uppercase",
+                  }}>{btn.label}</button>
+                ))}
+              </div>
+
+              {shown.map(cable => (
+                <div key={cable.id} style={{ marginBottom: 24, borderLeft: `2px solid ${cable.color}`, paddingLeft: 16 }}>
+                  <div style={{ color: cable.color, fontSize: 10, fontFamily: "monospace", letterSpacing: 2, marginBottom: 12, textTransform: "uppercase" }}>
+                    {cable.label}
+                  </div>
+                  {cable.steps.map((step, i) => (
+                    <div key={i} style={{ display: "flex", gap: 14, marginBottom: 10, alignItems: "flex-start" }}>
+                      <div style={{ color: cable.color, fontSize: 8, fontFamily: "monospace", opacity: 0.5, width: 80, flexShrink: 0, marginTop: 2 }}>
+                        {step.loc}
+                      </div>
+                      <div style={{ color: C.text, fontSize: 11, fontFamily: "Georgia", lineHeight: 1.7 }}>
+                        {step.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        // ── CREDENZA OPTIONS ──────────────────────────────────────────────────────────
+        function CredenzaOptions() {
+          const [sel, setSel] = useState(null);
+
+          const options = [
+            {
+              id: "ikea",
+              name: "IKEA Alex + Walnut Slab",
+              price: "$180–220 total",
+              width: "14″ deep × 28″ wide",
+              height: "27.5″ (desk height ✓)",
+              color: "#1a1220",
+              accent: "#9060d0",
+              pros: ["Cheapest path", "Alex drawer quality is actually good", "Walnut slab top unifies with Parsons aesthetic", "Ships fast, assembles in 30min", "Deep drawers — cables, paper, misc"],
+              cons: ["Narrow at 14″", "Not a furniture piece — looks DIY up close", "Doesn't match Parsons quality level"],
+              note: "Alex unit #403.735.30 in white or black. 3/4″ walnut butcher block slab cut to 15×28″ from IKEA SKÄRHAMN or local hardwood supplier. Silicone bumpers, no fasteners needed.",
+            },
+            {
+              id: "roomboard",
+              name: "Room & Board Moro Low Cabinet",
+              price: "~$1,100",
+              width: "36″ wide × 18″ deep",
+              height: "28″ (desk height ✓)",
+              color: "#1a1a10",
+              accent: C.walnutHi,
+              pros: ["Matches Parsons walnut perfectly", "Solid furniture quality — same brand", "36″ width = generous top surface for Sparks + charging", "Buy same visit as Parsons at 10th Ave store"],
+              cons: ["Expensive", "Lead time 4–8 weeks same as Parsons"],
+              note: "Ask R&B to match walnut finish exactly to Parsons. Moro series has clean legs similar to Parsons. Alternatively look at the Bassett cabinet — similar price, same showroom.",
+            },
+            {
+              id: "cb2",
+              name: "CB2 Casement File Cabinet",
+              price: "~$649",
+              width: "16″ deep × 20″ wide",
+              height: "28.5″",
+              color: "#101820",
+              accent: "#4080b0",
+              pros: ["Mid-price, good build quality", "Legal-size file drawer — actually useful", "Steel construction — clean industrial look", "Usually in stock / ships faster"],
+              cons: ["Narrow top surface for Sparks", "Steel doesn't match walnut Parsons warmth", "Style contrast with desk"],
+              note: "Good if you want the file drawer functionality. Top surface only ~14×18″ — Sparks might be a tight fit. Would need to keep Sparks under desk instead.",
+            },
+            {
+              id: "westelm",
+              name: "West Elm Anton Dresser (small)",
+              price: "~$400–600",
+              width: "24″ wide × 18″ deep",
+              height: "28–30″",
+              color: "#101010",
+              accent: "#808080",
+              pros: ["Decent walnut veneer options", "Wider top surface (24″)", "Mid-price, accessible"],
+              cons: ["Veneer not solid walnut — will look different from Parsons up close", "WE quality inconsistent batch to batch", "Already sold your WE desk — reason to move on"],
+              note: "You moved away from West Elm for the desk — probably skip here for consistency. Unless you find a floor model at a good price.",
+            },
+          ];
+
+          const chosen = sel ? options.find(o=>o.id===sel) : null;
+
+          return (
+            <div style={{ maxWidth: 640, margin: "0 auto" }}>
+              <div style={{ color: C.muted, fontSize: 11, fontFamily: "Georgia", lineHeight: 1.8, marginBottom: 20 }}>
+                Credenza goes on the <span style={{color: C.accent}}>right open side</span> of the Parsons.
+                Desk height is 29–30″ — credenza top should match (28–30″). Width 24–36″ is ideal.
+                Sparks can live on credenza top if you skip the under-desk bracket.
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+                {options.map(opt => (
+                  <button key={opt.id} onClick={() => setSel(sel === opt.id ? null : opt.id)} style={{
+                    background: sel === opt.id ? `${opt.accent}12` : C.panel,
+                    border: `1px solid ${sel === opt.id ? opt.accent : C.border}`,
+                    padding: "14px 16px", textAlign: "left", cursor: "pointer", borderRadius: 3,
+                  }}>
+                    <div style={{ color: sel === opt.id ? opt.accent : C.textHi, fontSize: 11, fontFamily: "Georgia", marginBottom: 4 }}>{opt.name}</div>
+                    <div style={{ color: opt.accent, fontSize: 10, fontFamily: "monospace", marginBottom: 2 }}>{opt.price}</div>
+                    <div style={{ color: C.muted, fontSize: 9, fontFamily: "monospace" }}>{opt.width}</div>
+                  </button>
+                ))}
+              </div>
+
+              {chosen && (
+                <div style={{ background: C.panel, border: `1px solid ${chosen.accent}30`, borderRadius: 4, padding: 20 }}>
+                  <div style={{ color: chosen.accent, fontSize: 12, fontFamily: "Georgia", marginBottom: 16 }}>{chosen.name}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                    <div>
+                      <div style={{ color: C.muted, fontSize: 8, fontFamily: "monospace", letterSpacing: 2, marginBottom: 8 }}>PROS</div>
+                      {chosen.pros.map((p,i) => <div key={i} style={{ color: "#34d39988", fontSize: 10, fontFamily: "Georgia", marginBottom: 5 }}>✓ {p}</div>)}
+                    </div>
+                    <div>
+                      <div style={{ color: C.muted, fontSize: 8, fontFamily: "monospace", letterSpacing: 2, marginBottom: 8 }}>CONS</div>
+                      {chosen.cons.map((c,i) => <div key={i} style={{ color: "#f8717188", fontSize: 10, fontFamily: "Georgia", marginBottom: 5 }}>✗ {c}</div>)}
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <div style={{ color: C.muted, fontSize: 8, fontFamily: "monospace", letterSpacing: 2, marginBottom: 6 }}>NOTE</div>
+                    <div style={{ color: C.text, fontSize: 10, fontFamily: "Georgia", lineHeight: 1.8 }}>{chosen.note}</div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: 20, padding: 14, background: "#0a0a08", border: `1px solid ${C.walnut}`, borderRadius: 4 }}>
+                <div style={{ color: C.walnutLight, fontSize: 9, fontFamily: "monospace", letterSpacing: 2, marginBottom: 8 }}>RECOMMENDATION</div>
+                <div style={{ color: "#5a4a28", fontSize: 11, fontFamily: "Georgia", lineHeight: 1.9 }}>
+                  If you're buying the Parsons at Room & Board on 10th Ave, look at the <span style={{color: C.walnutHi}}>Moro cabinet</span> in the same visit and match finishes in-store.
+                  It will look like a considered set. If budget is a concern right now, the <span style={{color: "#9060d0"}}>IKEA Alex + walnut slab</span> is genuinely
+                  a solid functional option — and you can swap it out later without regret. Skip West Elm.
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // ── MAIN ──────────────────────────────────────────────────────────────────────
+        function RoomLayout() {
+          const [tab, setTab] = useState(0);
+
+          return (
+            <div style={{ minHeight: "100vh", background: C.bg, padding: "28px 16px 60px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{ color: "#2a2218", fontSize: 9, letterSpacing: 5, fontFamily: "monospace", textTransform: "uppercase", marginBottom: 6 }}>
+                  Home Office Build
+                </div>
+                <h1 style={{ color: C.textHi, fontSize: 17, fontWeight: 400, margin: 0, fontFamily: "Georgia" }}>
+                  Room Layout · Spark Placement · Cable Routing · Credenza
+                </h1>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 2, background: "#0d0d0d", padding: 3, borderRadius: 4, marginBottom: 28 }}>
+                {TABS.map((t, i) => (
+                  <button key={t} onClick={() => setTab(i)} style={{
+                    background: tab === i ? "#1e1610" : "transparent",
+                    border: `1px solid ${tab === i ? "#5a3a18" : "transparent"}`,
+                    color: tab === i ? C.accent : "#333",
+                    padding: "6px 14px", fontSize: 10, letterSpacing: 1,
+                    fontFamily: "monospace", cursor: "pointer", borderRadius: 3,
+                    textTransform: "uppercase",
+                  }}>{t}</button>
+                ))}
+              </div>
+
+              {tab === 0 && <RoomPlan />}
+              {tab === 1 && <SparkDetail />}
+              {tab === 2 && <CableRouting />}
+              {tab === 3 && <CredenzaOptions />}
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RoomLayout />);
+    </script>
+</body>
+</html>
